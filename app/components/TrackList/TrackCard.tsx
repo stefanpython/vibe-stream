@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Play, Pause } from "lucide-react";
 import { Track } from "@/app/types";
-import Image from "next/image";
 
 interface TrackCardProps {
   track: Track;
@@ -25,14 +25,16 @@ export default function TrackCard({
       }`}
     >
       <div className="flex items-center gap-4">
-        <div className="relative group">
-          <Image
-            src={track.image_url}
-            alt={track.name}
-            width={64} // 16 * 4 = 64px
-            height={64} // 16 * 4 = 64px
-            className="rounded-md object-cover"
-          />
+        <div className="relative group w-16 h-16">
+          <div className="w-16 h-16 relative rounded-md overflow-hidden">
+            <Image
+              src={track.image_url}
+              alt={track.name}
+              width={64} // 16 * 4 = 64px
+              height={64} // 16 * 4 = 64px
+              className="rounded-md object-cover"
+            />
+          </div>
           <button
             onClick={onPlay}
             className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-md"
