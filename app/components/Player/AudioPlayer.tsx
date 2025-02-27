@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Track } from "@/app/types";
 import { Slider } from "@/components/ui/slider";
+import Image from "next/image";
 
 interface AudioPlayerProps {
   currentTrack: Track | null;
@@ -103,10 +104,12 @@ export default function AudioPlayer({
 
       <div className="max-w-7xl mx-auto grid grid-cols-3 gap-4 items-center">
         <div className="flex items-center gap-4">
-          <img
+          <Image
             src={currentTrack.image_url}
             alt={currentTrack.name}
-            className="w-12 h-12 rounded-md"
+            width={48} // 12 * 4 = 48px
+            height={48} // 12 * 4 = 48px
+            className="rounded-md"
           />
           <div>
             <h3 className="font-medium text-sm">{currentTrack.name}</h3>
