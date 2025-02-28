@@ -5,6 +5,7 @@ import { fetchTracks } from "./lib/api";
 import { Track } from "./types";
 import AudioPlayer from "./components/Player/AudioPlayer";
 import TrackCard from "./components/TrackList/TrackCard";
+import SearchInput from "./components/SearchInput";
 import { Music2, Loader2 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Progress } from "./components/ui/progress";
@@ -20,6 +21,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const limit = 20;
 
@@ -35,6 +37,11 @@ export default function Home() {
       }
     };
   }, []);
+
+  // Effect to reload tracks when search query changes
+  useEffect(() => {
+    loadTracks(true);
+  }, [searchQuery]);
 
   const startProgressTimer = (
     setProgressFn: React.Dispatch<React.SetStateAction<number>>
@@ -80,7 +87,7 @@ export default function Home() {
       }
 
       const currentOffset = reset ? 0 : offset;
-      const result = await fetchTracks(limit, currentOffset);
+      const result = await fetchTracks(limit, currentOffset, searchQuery);
 
       if (reset) {
         setTracks(result.tracks);
@@ -143,12 +150,19 @@ export default function Home() {
     }
   };
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
   return (
     <main className="min-h-screen bg-background pb-32">
       <div className="max-w-7xl mx-auto p-6">
-        <div className="flex items-center gap-3 mb-8">
-          <Music2 className="w-8 h-8 text-primary" />
-          <h1 className="text-2xl font-bold">Music Player</h1>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-3">
+            <Music2 className="w-8 h-8 text-primary" />
+            <h1 className="text-2xl font-bold">Music Player</h1>
+          </div>
+          <SearchInput onSearch={handleSearch} />
         </div>
 
         {isLoading ? (
@@ -172,8 +186,27 @@ export default function Home() {
           </div>
         ) : error ? (
           <div className="text-center text-destructive p-4">{error}</div>
+        ) : tracks.length === 0 ? (
+          <div className="text-center p-12 bg-accent/50 rounded-lg">
+            <Music2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-medium mb-2">No tracks found</h3>
+            <p className="text-muted-foreground">
+              {searchQuery
+                ? `No results for "${searchQuery}". Try a different search term.`
+                : "No tracks available. Try again later."}
+            </p>
+          </div>
         ) : (
           <>
+            {searchQuery && (
+              <div className="mb-6 p-3 bg-accent/50 rounded-lg">
+                <p className="text-sm">
+                  Showing results for:{" "}
+                  <span className="font-medium">`{searchQuery}`</span>
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {tracks.map((track, index) => (
                 <TrackCard

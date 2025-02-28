@@ -1,9 +1,14 @@
 import { JAMENDO_API_URL, JAMENDO_CLIENT_ID } from "../config/constants";
 
-export async function fetchTracks(limit = 20, offset = 0) {
-  const response = await fetch(
-    `${JAMENDO_API_URL}/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=${limit}&offset=${offset}&include=musicinfo&audioformat=mp32`
-  );
+export async function fetchTracks(limit = 20, offset = 0, searchQuery = "") {
+  let url = `${JAMENDO_API_URL}/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=${limit}&offset=${offset}&include=musicinfo&audioformat=mp32`;
+
+  // Add search query if provided
+  if (searchQuery) {
+    url += `&search=${encodeURIComponent(searchQuery)}`;
+  }
+
+  const response = await fetch(url);
 
   if (!response.ok) {
     throw new Error("Failed to fetch tracks");
