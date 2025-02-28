@@ -1,8 +1,8 @@
 import { JAMENDO_API_URL, JAMENDO_CLIENT_ID } from "../config/constants";
 
-export async function fetchTracks(limit = 20) {
+export async function fetchTracks(limit = 20, offset = 0) {
   const response = await fetch(
-    `${JAMENDO_API_URL}/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=${limit}&include=musicinfo&audioformat=mp32`
+    `${JAMENDO_API_URL}/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=${limit}&offset=${offset}&include=musicinfo&audioformat=mp32`
   );
 
   if (!response.ok) {
@@ -10,7 +10,10 @@ export async function fetchTracks(limit = 20) {
   }
 
   const data = await response.json();
-  return data.results.map(
+
+  // Jamendo API might not return x-total-count in headers as expected
+  // Using a fallback approach to determine if there are more tracks
+  const tracks = data.results.map(
     (track: {
       id: string;
       name: string;
@@ -29,4 +32,14 @@ export async function fetchTracks(limit = 20) {
       image_url: track.image,
     })
   );
+
+  return {
+    tracks,
+    headers: {
+      // If we can't get the total count from headers, we'll use the presence of tracks
+      // to determine if there might be more (if we got a full page of results)
+      totalCount: parseInt(data.headers?.["x-total-count"] || "0", 10),
+      resultsCount: tracks.length,
+    },
+  };
 }

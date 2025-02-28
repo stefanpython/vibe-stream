@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { fetchTracks } from "./lib/api";
 import { Track } from "./types";
 import AudioPlayer from "./components/Player/AudioPlayer";
 import TrackCard from "./components/TrackList/TrackCard";
-import { Music2 } from "lucide-react";
+import { Music2, Loader2 } from "lucide-react";
+import { Button } from "./components/ui/button";
 import { Progress } from "./components/ui/progress";
 
 export default function Home() {
@@ -13,40 +14,113 @@ export default function Home() {
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadMoreProgress, setLoadMoreProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const limit = 20;
 
   useEffect(() => {
     loadTracks();
 
     // Simulate loading progress for better UX
+    startProgressTimer(setLoadingProgress);
+
+    return () => {
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+      }
+    };
+  }, []);
+
+  const startProgressTimer = (
+    setProgressFn: React.Dispatch<React.SetStateAction<number>>
+  ) => {
+    // Reset progress
+    setProgressFn(0);
+
+    // Clear any existing timer
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+    }
+
+    // Start new timer
     const totalLoadTime = 20; // seconds
     const interval = 100; // ms
     const steps = (totalLoadTime * 1000) / interval;
     const increment = 100 / steps;
 
-    const progressTimer = setInterval(() => {
-      setLoadingProgress((prev) => {
+    progressTimerRef.current = setInterval(() => {
+      setProgressFn((prev) => {
         const newProgress = prev + increment;
         return newProgress >= 100 ? 100 : newProgress;
       });
     }, interval);
 
-    return () => clearInterval(progressTimer);
-  }, []);
+    // Clear timer after total load time
+    setTimeout(() => {
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+      }
+    }, totalLoadTime * 1000);
+  };
 
-  async function loadTracks() {
+  async function loadTracks(reset = true) {
     try {
-      const fetchedTracks = await fetchTracks();
-      setTracks(fetchedTracks);
+      if (reset) {
+        setIsLoading(true);
+        setOffset(0);
+        startProgressTimer(setLoadingProgress);
+      } else {
+        setIsLoadingMore(true);
+        startProgressTimer(setLoadMoreProgress);
+      }
+
+      const currentOffset = reset ? 0 : offset;
+      const result = await fetchTracks(limit, currentOffset);
+
+      if (reset) {
+        setTracks(result.tracks);
+      } else {
+        setTracks((prev) => [...prev, ...result.tracks]);
+      }
+
+      // Check if there are more tracks to load
+      // If we received a full page of results, assume there are more
+      const receivedFullPage = result.tracks.length >= limit;
+      const newOffset = currentOffset + result.tracks.length;
+      setOffset(newOffset);
+
+      // If the API doesn't provide a reliable total count, we'll use the number of tracks returned
+      // If we got fewer tracks than requested, assume we've reached the end
+      setHasMore(receivedFullPage);
     } catch (err) {
       console.log(err);
       setError("Failed to load tracks. Please try again later.");
     } finally {
-      setIsLoading(false);
-      setLoadingProgress(100);
+      if (reset) {
+        setIsLoading(false);
+        setLoadingProgress(100);
+      } else {
+        setIsLoadingMore(false);
+        setLoadMoreProgress(100);
+      }
+
+      // Clear the progress timer
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+      }
     }
   }
+
+  const loadMoreTracks = () => {
+    if (hasMore) {
+      loadTracks(false);
+    }
+  };
 
   const handleTrackSelect = (index: number) => {
     if (currentTrackIndex === index) {
@@ -99,17 +173,46 @@ export default function Home() {
         ) : error ? (
           <div className="text-center text-destructive p-4">{error}</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tracks.map((track, index) => (
-              <TrackCard
-                key={track.id}
-                track={track}
-                isPlaying={isPlaying}
-                isActive={currentTrackIndex === index}
-                onPlay={() => handleTrackSelect(index)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {tracks.map((track, index) => (
+                <TrackCard
+                  key={track.id}
+                  track={track}
+                  isPlaying={isPlaying}
+                  isActive={currentTrackIndex === index}
+                  onPlay={() => handleTrackSelect(index)}
+                />
+              ))}
+            </div>
+
+            <div className="mt-8 flex justify-center">
+              <Button
+                onClick={loadMoreTracks}
+                disabled={isLoadingMore || !hasMore}
+                className="px-6 relative min-w-[150px] h-10"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <div className="absolute inset-0 overflow-hidden rounded-md">
+                      <div
+                        className="h-full bg-primary/20 transition-all duration-300"
+                        style={{ width: `${loadMoreProgress}%` }}
+                      ></div>
+                    </div>
+                    <div className="relative flex items-center justify-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading... {Math.round(loadMoreProgress)}%
+                    </div>
+                  </>
+                ) : hasMore ? (
+                  "Load More"
+                ) : (
+                  "No More Tracks"
+                )}
+              </Button>
+            </div>
+          </>
         )}
       </div>
 
