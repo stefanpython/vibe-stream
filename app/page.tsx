@@ -157,7 +157,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background pb-32">
       <div className="max-w-7xl mx-auto p-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 shadow-lg p-2 rounded-xl bg-background py-4">
           <div className="flex items-center gap-3">
             <Music2 className="w-8 h-8 text-primary" />
             <h1 className="text-2xl font-bold">Music Player</h1>
