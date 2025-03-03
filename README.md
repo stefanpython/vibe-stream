@@ -2,6 +2,8 @@
 
 Vibe Stream is a music streaming web application that allows users to discover and play songs using the Jamendo API. Built with Next.js and TypeScript, it delivers a fast and immersive music experience.
 
+LIVE [HERE](https://vibe-stream-pi.vercel.app/)
+
 ## Features
 
 - 🎵 Stream music from the Jamendo API
